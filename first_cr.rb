@@ -1,6 +1,7 @@
 # -*- cpding: utf-8 -*-
 require 'cgi'
 require 'open-uri'
+require 'rss'
 
 # page_source = open('samplepage.html', &:read)
 
@@ -28,11 +29,40 @@ def format_text(title, url, url_title_time_ary)
   end
   s
 end
-
 # puts format_text("WWW.SBCR トピックス",
 #   "http://crawler.sbcr.jp/samplepage.html",
 #   parse(`/usr/bin/wget -q -O http://crawler.sbcr.jp/samplepage.html`))
-puts format_text("WWW.SBCR トピックス",
-  "http://crawler.sbcr.jp/samplepage.html",
-  parse(open("http://crawler.sbcr.jp/samplepage.html", "r:UTF-8", &:read)))
+# puts format_text("WWW.SBCR トピックス",
+#   "http://crawler.sbcr.jp/samplepage.html",
+#   parse(open("http://crawler.sbcr.jp/samplepage.html", "r:UTF-8", &:read)))
 # or open("http://crawler.sbcr.jp/samplepage.html", &:read).toutf8
+
+parsed = parse(open("http://crawler.sbcr.jp/samplepage.html", "r:UTF-8", &:read))
+
+def format_rss(title, url, url_title_time_ary)
+  RSS::Maker.make("2.0") do |maker|
+    maker.channel.updated = Time.now.to_s
+    maker.channel.link = url
+    maker.channel.title = title
+    maker.channel.description = title
+    url_title_time_ary.each do |aurl, atitle, atime|
+      maker.items.new_item do |item|
+        itme.link = aurl
+        item.title = atitle
+        item.updated = atime
+        item.description = atitle
+      end
+    end
+  end
+end
+
+formatter = case ARGV.first
+  when "rss-output"
+    :format_rss
+  when "text-output"
+    :format_text
+  end
+puts __send__(formatter,
+  "WWW.SBCR トピックス",
+  "http://crawler.sbcr.jp/samplepage.html",
+  parsed)
