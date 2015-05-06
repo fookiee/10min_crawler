@@ -15,9 +15,19 @@ def parse(page_source)
     [CGI.unescapeHTML(aurl), CGI.unescapeHTML(atitle), Time.local(*ymd)]
   }
 end
-
 # x = parse(open("samplepage", &:read))
-X = parse(`/usr/bin/wget -q -O http://crawler.sbcr.jp/samplepage.html`)
+# X = parse(`/usr/bin/wget -q -O http://crawler.sbcr.jp/samplepage.html`)
+# x[0,2]
 
+def format_text(title, url, url_title_time_ary)
+  s = "Title: #{title}¥nURL: #{url}¥n¥n"
+  url_title_time_ary.each do |aurl, atitle, atime|
+    s << "* (#{atime})#{atitle}¥n"
+    s << "    #{aurl}¥n"
+  end
+  s
+end
 
-x[0,2]
+puts format_text("WWW.SBCR トピックス",
+  "http://crawler.sbcr.jp/samplepage.html",
+  parse(`/usr/bin/wget -q -O http://crawler.sbcr.jp/samplepage.html`))
