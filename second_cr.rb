@@ -1,8 +1,9 @@
-# -*- cpding: utf-8 -*-
+# -*- coding: utf-8 -*-
 require 'cgi'
 require 'open-uri'
 require 'rss'
 require 'kconv'
+require 'webrick'
 
 class Site
   def initialize(url: "", title: "")
@@ -19,10 +20,10 @@ class Site
   end
 end
 
-class SbcrTopics < Site
-  def parse(page_source)
+class SbcrTopics < Site # SbcrTopics <- editable
+  def parse
     dates = page_source.scan(
-      %r!(¥d+)年 ?(¥d+)月 ?(¥d+)日<br/>!)
+      %r!(\d+)年 ?(\d+)月 ?(\d+)日<br/>!)
     url_titles = page_source.scan(
       %r!^<a href="(.+?)">(.+?)</a><br/>!)
     url_titles.zip(dates).map{|(aurl, atitle),ymd|
@@ -32,7 +33,7 @@ class SbcrTopics < Site
 end
 
 class Formatter
-  def initiazlize(site)
+  def initialize(site)
     @url = site.url
     @title = site.title
   end
@@ -41,16 +42,16 @@ end
 
 class TextFormatter < Formatter
   def format(url_title_time_ary)
-    s = "Title: #{title}¥nURL: #{url}¥n¥n"
+    s = "Title: #{title}\nURL: #{url}\n\n"
     url_title_time_ary.each do |aurl, atitle, atime|
-      s << "* (#{atime})#{atitle}¥n"
-      s << "    #{aurl}¥n"
+      s << "* (#{atime})#{atitle}\n"
+      s << "    #{aurl}\n"
     end
     s
   end
 end
 
-class RSSFormatter < Formater
+class RSSFormatter < Formatter
   def format(url_title_time_ary)
     RSS::Maker.make("2.0") do |maker|
       maker.channel.updated = Time.now.to_s
@@ -69,13 +70,35 @@ class RSSFormatter < Formater
   end
 end
 
+class RSSServlet < WEBrick::HTTPServlet::AbstractServlet
 
-site = SbcrTopics.new(
-  url: "http://crawler.sbcr.jp/samplepage.html",
-  title: "WWW.SBCR.jp トピックス")
-case ARGV.first
-when "rss-output"
-  puts site.output RSSFormatter
-when "text-output"
-  puts site.output TextFormatter
+  def do_GET(req, res)
+    klass, opts = @options
+    res.body = klass.new(opts).output(RSSFormatter).to_s
+    res.content_type = "application/xml; charset=utf-8"
+  end
+end
+
+def start_server
+  srv = WEBrick::HTTPServer.new(:BindAddress => '127.0.0.1', :Port => 7777)
+  srv.mount('/rss.xml', RSSServlet, SbcrTopics, # SbcrTopics <- editable
+    url: "http://crawler.sbcr.jp/samplepage.html", # <- editable
+    title: "WWW.SBCR.JP トピックス") # <- editable
+  # 場合によってはwrv.mountの行を追加する
+  trap("INT"){srv.shutdown}
+  srv.start
+end
+
+if ARGV.first == 'server'
+  start_server
+else
+  site = SbcrTopics.new( # SbcrTopics <- editable
+    url: "http://crawler.sbcr.jp/samplepage.html", # <- editable
+    title: "WWW.SBCR.jp トピックス") # <- editable
+  case ARGV.first
+  when "rss-output"
+    puts site.output RSSFormatter
+  when "text-output"
+    puts site.output TextFormatter
+  end
 end
