@@ -1,5 +1,6 @@
 # -*- cpding: utf-8 -*-
 require 'cgi'
+require 'open-uri'
 
 # page_source = open('samplepage.html', &:read)
 
@@ -28,6 +29,10 @@ def format_text(title, url, url_title_time_ary)
   s
 end
 
+# puts format_text("WWW.SBCR トピックス",
+#   "http://crawler.sbcr.jp/samplepage.html",
+#   parse(`/usr/bin/wget -q -O http://crawler.sbcr.jp/samplepage.html`))
 puts format_text("WWW.SBCR トピックス",
   "http://crawler.sbcr.jp/samplepage.html",
-  parse(`/usr/bin/wget -q -O http://crawler.sbcr.jp/samplepage.html`))
+  parse(open("http://crawler.sbcr.jp/samplepage.html", "r:UTF-8", &:read)))
+# or open("http://crawler.sbcr.jp/samplepage.html", &:read).toutf8
